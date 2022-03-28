@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "deep-link-demo-app",
+    "slug": "deep-link-demo-app",
+    "owner": "phantom-wallet",
+    "privacy": "hidden",
+    "version": "1.0.0",
+    "scheme": "deep-link-demo-app",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
