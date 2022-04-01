@@ -39,7 +39,7 @@ const decryptPayload = (data: string, nonce: string, sharedSecret?: Uint8Array) 
   return JSON.parse(Buffer.from(decryptedData).toString("utf8"));
 };
 
-const encryptPayload = (payload: any, sharedSecret: Uint8Array) => {
+const encryptPayload = (payload: any, sharedSecret?: Uint8Array) => {
   if (!sharedSecret) throw new Error("missing shared secret");
 
   const nonce = nacl.randomBytes(24);
@@ -60,13 +60,12 @@ export default function App() {
   const addLog = useCallback((log: string) => setLogs((logs) => [...logs, "> " + log]), []);
   const scrollViewRef = useRef<any>(null);
 
-  // store dappKeyPair and sharedSecret SECURELY on device
+  // store dappKeyPair, sharedSecret, session and account SECURELY on device
   // to avoid having to reconnect users.
   const [dappKeyPair] = useState(nacl.box.keyPair());
   const [sharedSecret, setSharedSecret] = useState<Uint8Array>();
-
-  const [phantomWalletPublicKey, setPhantomWalletPublicKey] = useState<PublicKey>();
   const [session, setSession] = useState<string>();
+  const [phantomWalletPublicKey, setPhantomWalletPublicKey] = useState<PublicKey>();
 
   useEffect(() => {
     (async () => {
