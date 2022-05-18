@@ -17,7 +17,8 @@ import {
   Transaction,
 } from "@solana/web3.js";
 
-const NETWORK = clusterApiUrl("mainnet-beta");
+const _NETWORK = "mainnet-beta"; // mainnet-beta, devnet, testnet
+const NETWORK = clusterApiUrl(_NETWORK);
 
 const onConnectRedirectLink = Linking.createURL("onConnect");
 const onDisconnectRedirectLink = Linking.createURL("onDisconnect");
@@ -175,7 +176,7 @@ export default function App() {
   const connect = async () => {
     const params = new URLSearchParams({
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
-      cluster: "mainnet-beta",
+      cluster: _NETWORK,
       app_url: "https://phantom.app",
       redirect_link: onConnectRedirectLink,
     });
