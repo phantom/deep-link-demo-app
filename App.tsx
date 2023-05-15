@@ -26,8 +26,17 @@ const onSignAllTransactionsRedirectLink = Linking.createURL("onSignAllTransactio
 const onSignTransactionRedirectLink = Linking.createURL("onSignTransaction");
 const onSignMessageRedirectLink = Linking.createURL("onSignMessage");
 
+/**
+ * If true, uses universal links instead of deep links. This is the recommended way for dapps
+ * and Phantom to handle deeplinks as we own the phantom.app domain.
+ *
+ * Set this to false to use normal deeplinks, starting with phantom://. This is easier for
+ * debugging with a local build such as Expo Dev Client builds.
+ */
+const useUniversalLinks = true;
+
 const buildUrl = (path: string, params: URLSearchParams) =>
-  `https://phantom.app/ul/v1/${path}?${params.toString()}`;
+  `${useUniversalLinks ? "https://phantom.app/ul/" : "phantom://"}v1/${path}?${params.toString()}`;
 
 const decryptPayload = (data: string, nonce: string, sharedSecret?: Uint8Array) => {
   if (!sharedSecret) throw new Error("missing shared secret");
