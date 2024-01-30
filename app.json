@@ -12,6 +12,17 @@
     },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "android": {
+      "package": "com.phantomwallet.deeplinkdemoapp"
+    },
+    "ios": {
+      "bundleIdentifier": "com.phantomwallet.deeplinkdemoapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6d8aec9a-b6d3-49ab-9262-c1b8c0913c57"
+      }
+    }
   }
 }
