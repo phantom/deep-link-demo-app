@@ -1,22 +1,15 @@
 import "react-native-get-random-values";
 import "react-native-url-polyfill/auto";
 import { Buffer } from "buffer";
-
-global.Buffer = global.Buffer || Buffer;
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Button, Platform, ScrollView, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Linking from "expo-linking";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
-import {
-  clusterApiUrl,
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction
-} from "@solana/web3.js";
+import { clusterApiUrl, Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+
+global.Buffer = global.Buffer || Buffer;
 
 const NETWORK = clusterApiUrl("mainnet-beta");
 
@@ -82,8 +75,6 @@ export default function App() {
     (async () => {
       const initialUrl = await Linking.getInitialURL();
       if (initialUrl) {
-        console.log("GOT INITIAL LINK", initialUrl);
-
         setDeepLink(initialUrl);
       }
     })();
@@ -94,7 +85,6 @@ export default function App() {
   }, []);
 
   const handleDeepLink = ({ url }: Linking.EventType) => {
-    console.log("GOT LINK IN HANDLER", url);
     setDeepLink(url);
   };
 
@@ -195,7 +185,6 @@ export default function App() {
     });
 
     const url = buildUrl("connect", params);
-    console.log("OPENING", url);
     Linking.openURL(url);
   };
 
