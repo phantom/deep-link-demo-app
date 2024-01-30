@@ -1,21 +1,15 @@
 import "react-native-get-random-values";
 import "react-native-url-polyfill/auto";
-import { Buffer } from "buffer";
-global.Buffer = global.Buffer || Buffer;
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import * as Linking from "expo-linking";
-import nacl from "tweetnacl";
+import { clusterApiUrl, Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
-import {
-  clusterApiUrl,
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
+import { Buffer } from "buffer";
+import * as Linking from "expo-linking";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Button, Platform, ScrollView, Text, View } from "react-native";
+import nacl from "tweetnacl";
+
+global.Buffer = global.Buffer || Buffer;
 
 const NETWORK = clusterApiUrl("mainnet-beta");
 
@@ -26,8 +20,16 @@ const onSignAllTransactionsRedirectLink = Linking.createURL("onSignAllTransactio
 const onSignTransactionRedirectLink = Linking.createURL("onSignTransaction");
 const onSignMessageRedirectLink = Linking.createURL("onSignMessage");
 
+/**
+ * If true, uses universal links instead of deep links. This is the recommended way for dapps
+ * and Phantom to handle deeplinks as we own the phantom.app domain.
+ *
+ * Set this to false to use normal deeplinks, starting with phantom://. This is easier for
+ * debugging with a local build such as Expo Dev Client builds.
+ */
+const useUniversalLinks = false;
 const buildUrl = (path: string, params: URLSearchParams) =>
-  `https://phantom.app/ul/v1/${path}?${params.toString()}`;
+  `${useUniversalLinks ? "https://phantom.app/ul/" : "phantom://"}v1/${path}?${params.toString()}`;
 
 const decryptPayload = (data: string, nonce: string, sharedSecret?: Uint8Array) => {
   if (!sharedSecret) throw new Error("missing shared secret");
@@ -47,7 +49,7 @@ const encryptPayload = (payload: any, sharedSecret?: Uint8Array) => {
   const encryptedPayload = nacl.box.after(
     Buffer.from(JSON.stringify(payload)),
     nonce,
-    sharedSecret
+    sharedSecret,
   );
 
   return [nonce, encryptedPayload];
@@ -74,9 +76,9 @@ export default function App() {
         setDeepLink(initialUrl);
       }
     })();
-    Linking.addEventListener("url", handleDeepLink);
+    const subscription = Linking.addEventListener("url", handleDeepLink);
     return () => {
-      Linking.removeEventListener("url", handleDeepLink);
+      subscription.remove();
     };
   }, []);
 
@@ -96,16 +98,16 @@ export default function App() {
       return;
     }
 
-    if (/onConnect/.test(url.pathname)) {
+    if (/onConnect/.test(url.pathname || url.host)) {
       const sharedSecretDapp = nacl.box.before(
         bs58.decode(params.get("phantom_encryption_public_key")!),
-        dappKeyPair.secretKey
+        dappKeyPair.secretKey,
       );
 
       const connectData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecretDapp
+        sharedSecretDapp,
       );
 
       setSharedSecret(sharedSecretDapp);
@@ -113,43 +115,43 @@ export default function App() {
       setPhantomWalletPublicKey(new PublicKey(connectData.public_key));
 
       addLog(JSON.stringify(connectData, null, 2));
-    } else if (/onDisconnect/.test(url.pathname)) {
+    } else if (/onDisconnect/.test(url.pathname || url.host)) {
       addLog("Disconnected!");
-    } else if (/onSignAndSendTransaction/.test(url.pathname)) {
+    } else if (/onSignAndSendTransaction/.test(url.pathname || url.host)) {
       const signAndSendTransactionData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       addLog(JSON.stringify(signAndSendTransactionData, null, 2));
-    } else if (/onSignAllTransactions/.test(url.pathname)) {
+    } else if (/onSignAllTransactions/.test(url.pathname || url.host)) {
       const signAllTransactionsData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       const decodedTransactions = signAllTransactionsData.transactions.map((t: string) =>
-        Transaction.from(bs58.decode(t))
+        Transaction.from(bs58.decode(t)),
       );
 
       addLog(JSON.stringify(decodedTransactions, null, 2));
-    } else if (/onSignTransaction/.test(url.pathname)) {
+    } else if (/onSignTransaction/.test(url.pathname || url.host)) {
       const signTransactionData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       const decodedTransaction = Transaction.from(bs58.decode(signTransactionData.transaction));
 
       addLog(JSON.stringify(decodedTransaction, null, 2));
-    } else if (/onSignMessage/.test(url.pathname)) {
+    } else if (/onSignMessage/.test(url.pathname || url.host)) {
       const signMessageData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       addLog(JSON.stringify(signMessageData, null, 2));
@@ -158,12 +160,12 @@ export default function App() {
 
   const createTransferTransaction = async () => {
     if (!phantomWalletPublicKey) throw new Error("missing public key from user");
-    let transaction = new Transaction().add(
+    const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: phantomWalletPublicKey,
         toPubkey: phantomWalletPublicKey,
         lamports: 100,
-      })
+      }),
     );
     transaction.feePayer = phantomWalletPublicKey;
     addLog("Getting recent blockhash");
@@ -236,8 +238,8 @@ export default function App() {
       bs58.encode(
         t.serialize({
           requireAllSignatures: false,
-        })
-      )
+        }),
+      ),
     );
 
     const payload = {
@@ -265,7 +267,7 @@ export default function App() {
     const serializedTransaction = bs58.encode(
       transaction.serialize({
         requireAllSignatures: false,
-      })
+      }),
     );
 
     const payload = {
