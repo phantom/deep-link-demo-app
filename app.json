@@ -17,7 +17,8 @@
       "package": "com.phantomwallet.deeplinkdemoapp"
     },
     "ios": {
-      "bundleIdentifier": "com.phantomwallet.deeplinkdemoapp"
+      "bundleIdentifier": "com.phantomwallet.deeplinkdemoapp",
+      "deploymentTarget": "16.0"
     },
     "extra": {
       "eas": {
