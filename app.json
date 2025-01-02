@@ -3,7 +3,6 @@
     "name": "deep-link-demo-app",
     "slug": "deep-link-demo-app",
     "owner": "phantom-wallet",
-    "privacy": "hidden",
     "version": "1.0.0",
     "scheme": "deep-link-demo-app",
     "orientation": "portrait",
@@ -17,13 +16,17 @@
       "package": "com.phantomwallet.deeplinkdemoapp"
     },
     "ios": {
-      "bundleIdentifier": "com.phantomwallet.deeplinkdemoapp",
-      "deploymentTarget": "16.0"
+      "bundleIdentifier": "com.phantomwallet.deeplinkdemoapp"
     },
     "extra": {
       "eas": {
         "projectId": "6d8aec9a-b6d3-49ab-9262-c1b8c0913c57"
       }
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ab9ff2"
     }
   }
 }

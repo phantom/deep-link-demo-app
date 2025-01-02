@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Platform, ScrollView, Text, View } from "react-native";
 import nacl from "tweetnacl";
+import * as WebBrowser from "expo-web-browser";
 
 global.Buffer = global.Buffer || Buffer;
 
@@ -19,6 +20,8 @@ const onSignAndSendTransactionRedirectLink = Linking.createURL("onSignAndSendTra
 const onSignAllTransactionsRedirectLink = Linking.createURL("onSignAllTransactions");
 const onSignTransactionRedirectLink = Linking.createURL("onSignTransaction");
 const onSignMessageRedirectLink = Linking.createURL("onSignMessage");
+
+console.log("REDIRECT LINK", Linking.createURL(""));
 
 /**
  * If true, uses universal links instead of deep links. This is the recommended way for dapps
@@ -49,7 +52,7 @@ const encryptPayload = (payload: any, sharedSecret?: Uint8Array) => {
   const encryptedPayload = nacl.box.after(
     Buffer.from(JSON.stringify(payload)),
     nonce,
-    sharedSecret
+    sharedSecret,
   );
 
   return [nonce, encryptedPayload];
@@ -84,6 +87,8 @@ export default function App() {
   }, []);
 
   const handleDeepLink = ({ url }: Linking.EventType) => {
+    console.log("GOT DEEP LINK ANDROID", url);
+    WebBrowser.dismissBrowser()?.catch((e) => console.log("FAILED TO DISMISS", e));
     setDeepLink(url);
   };
 
@@ -102,13 +107,13 @@ export default function App() {
     if (/onConnect/.test(url.pathname || url.host)) {
       const sharedSecretDapp = nacl.box.before(
         bs58.decode(params.get("phantom_encryption_public_key")!),
-        dappKeyPair.secretKey
+        dappKeyPair.secretKey,
       );
 
       const connectData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecretDapp
+        sharedSecretDapp,
       );
 
       setSharedSecret(sharedSecretDapp);
@@ -122,7 +127,7 @@ export default function App() {
       const signAndSendTransactionData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       addLog(JSON.stringify(signAndSendTransactionData, null, 2));
@@ -130,11 +135,11 @@ export default function App() {
       const signAllTransactionsData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       const decodedTransactions = signAllTransactionsData.transactions.map((t: string) =>
-        Transaction.from(bs58.decode(t))
+        Transaction.from(bs58.decode(t)),
       );
 
       addLog(JSON.stringify(decodedTransactions, null, 2));
@@ -142,7 +147,7 @@ export default function App() {
       const signTransactionData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       const decodedTransaction = Transaction.from(bs58.decode(signTransactionData.transaction));
@@ -152,7 +157,7 @@ export default function App() {
       const signMessageData = decryptPayload(
         params.get("data")!,
         params.get("nonce")!,
-        sharedSecret
+        sharedSecret,
       );
 
       addLog(JSON.stringify(signMessageData, null, 2));
@@ -165,8 +170,8 @@ export default function App() {
       SystemProgram.transfer({
         fromPubkey: phantomWalletPublicKey,
         toPubkey: phantomWalletPublicKey,
-        lamports: 100
-      })
+        lamports: 100,
+      }),
     );
     transaction.feePayer = phantomWalletPublicKey;
     addLog("Getting recent blockhash");
@@ -180,7 +185,7 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       cluster: "mainnet-beta",
       app_url: "https://phantom.app",
-      redirect_link: onConnectRedirectLink
+      redirect_link: onConnectRedirectLink,
     });
 
     const url = buildUrl("connect", params);
@@ -189,7 +194,7 @@ export default function App() {
 
   const disconnect = async () => {
     const payload = {
-      session
+      session,
     };
     const [nonce, encryptedPayload] = encryptPayload(payload, sharedSecret);
 
@@ -197,7 +202,7 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       nonce: bs58.encode(nonce),
       redirect_link: onDisconnectRedirectLink,
-      payload: bs58.encode(encryptedPayload)
+      payload: bs58.encode(encryptedPayload),
     });
 
     const url = buildUrl("disconnect", params);
@@ -208,12 +213,12 @@ export default function App() {
     const transaction = await createTransferTransaction();
 
     const serializedTransaction = transaction.serialize({
-      requireAllSignatures: false
+      requireAllSignatures: false,
     });
 
     const payload = {
       session,
-      transaction: bs58.encode(serializedTransaction)
+      transaction: bs58.encode(serializedTransaction),
     };
     const [nonce, encryptedPayload] = encryptPayload(payload, sharedSecret);
 
@@ -221,7 +226,7 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       nonce: bs58.encode(nonce),
       redirect_link: onSignAndSendTransactionRedirectLink,
-      payload: bs58.encode(encryptedPayload)
+      payload: bs58.encode(encryptedPayload),
     });
 
     addLog("Sending transaction...");
@@ -232,20 +237,20 @@ export default function App() {
   const signAllTransactions = async () => {
     const transactions = await Promise.all([
       createTransferTransaction(),
-      createTransferTransaction()
+      createTransferTransaction(),
     ]);
 
     const serializedTransactions = transactions.map((t) =>
       bs58.encode(
         t.serialize({
-          requireAllSignatures: false
-        })
-      )
+          requireAllSignatures: false,
+        }),
+      ),
     );
 
     const payload = {
       session,
-      transactions: serializedTransactions
+      transactions: serializedTransactions,
     };
 
     const [nonce, encryptedPayload] = encryptPayload(payload, sharedSecret);
@@ -254,7 +259,7 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       nonce: bs58.encode(nonce),
       redirect_link: onSignAllTransactionsRedirectLink,
-      payload: bs58.encode(encryptedPayload)
+      payload: bs58.encode(encryptedPayload),
     });
 
     addLog("Signing transactions...");
@@ -267,13 +272,13 @@ export default function App() {
 
     const serializedTransaction = bs58.encode(
       transaction.serialize({
-        requireAllSignatures: false
-      })
+        requireAllSignatures: false,
+      }),
     );
 
     const payload = {
       session,
-      transaction: serializedTransaction
+      transaction: serializedTransaction,
     };
 
     const [nonce, encryptedPayload] = encryptPayload(payload, sharedSecret);
@@ -282,7 +287,7 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       nonce: bs58.encode(nonce),
       redirect_link: onSignTransactionRedirectLink,
-      payload: bs58.encode(encryptedPayload)
+      payload: bs58.encode(encryptedPayload),
     });
 
     addLog("Signing transaction...");
@@ -295,7 +300,7 @@ export default function App() {
 
     const payload = {
       session,
-      message: bs58.encode(Buffer.from(message))
+      message: bs58.encode(Buffer.from(message)),
     };
 
     const [nonce, encryptedPayload] = encryptPayload(payload, sharedSecret);
@@ -304,12 +309,23 @@ export default function App() {
       dapp_encryption_public_key: bs58.encode(dappKeyPair.publicKey),
       nonce: bs58.encode(nonce),
       redirect_link: onSignMessageRedirectLink,
-      payload: bs58.encode(encryptedPayload)
+      payload: bs58.encode(encryptedPayload),
     });
 
     addLog("Signing message...");
     const url = buildUrl("signMessage", params);
     Linking.openURL(url);
+  };
+
+  const openSDKSignMessage = async () => {
+    let result = await WebBrowser.openBrowserAsync("https://l8dj67.csb.app/", {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+      toolbarColor: "#ab9ff2",
+      readerMode: false,
+      showTitle: false,
+      dismissButtonStyle: "close",
+    });
+    addLog("Got web browser result:", JSON.stringify(result));
   };
 
   return (
@@ -321,7 +337,7 @@ export default function App() {
             backgroundColor: "#111",
             padding: 20,
             paddingTop: 100,
-            flexGrow: 1
+            flexGrow: 1,
           }}
           ref={scrollViewRef}
           onContentSizeChange={() => {
@@ -335,7 +351,7 @@ export default function App() {
               style={{
                 fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
                 color: "#fff",
-                fontSize: 14
+                fontSize: 14,
               }}
             >
               {log}
@@ -344,6 +360,7 @@ export default function App() {
         </ScrollView>
       </View>
       <View style={{ flex: 0, paddingTop: 20, paddingBottom: 40 }}>
+        <Btn title="SDK Sign Message" onPress={openSDKSignMessage} />
         <Btn title="Connect" onPress={connect} />
         <Btn title="Disconnect" onPress={disconnect} />
         <Btn title="Sign And Send Transaction" onPress={signAndSendTransaction} />
