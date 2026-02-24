@@ -199,7 +199,12 @@ export default function App() {
     }
   }, [deepLink]);
 
-  const createTransferTransaction = async () => {
+  const getRecentBlockhash = async () => {
+    addLog("Getting recent blockhash");
+    return (await connection.getLatestBlockhash()).blockhash;
+  };
+
+  const createTransferTransaction = async (recentBlockhash: string) => {
     if (!phantomWalletPublicKey) throw new Error("missing public key from user");
     const transaction = new Transaction().add(
       SystemProgram.transfer({
@@ -209,9 +214,8 @@ export default function App() {
       }),
     );
     transaction.feePayer = phantomWalletPublicKey;
-    addLog("Getting recent blockhash");
     const anyTransaction: any = transaction;
-    anyTransaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    anyTransaction.recentBlockhash = recentBlockhash;
     return transaction;
   };
 
@@ -279,7 +283,8 @@ export default function App() {
   };
 
   const signAndSendTransaction = async () => {
-    const transaction = await createTransferTransaction();
+    const recentBlockhash = await getRecentBlockhash();
+    const transaction = await createTransferTransaction(recentBlockhash);
 
     const serializedTransaction = transaction.serialize({
       requireAllSignatures: false,
@@ -304,9 +309,10 @@ export default function App() {
   };
 
   const signAllTransactions = async (overrides?: DeeplinkParamOverrides) => {
+    const recentBlockhash = await getRecentBlockhash();
     const transactions = await Promise.all([
-      createTransferTransaction(),
-      createTransferTransaction(),
+      createTransferTransaction(recentBlockhash),
+      createTransferTransaction(recentBlockhash),
     ]);
 
     const serializedTransactions = transactions.map((t) =>
@@ -340,7 +346,8 @@ export default function App() {
   };
 
   const signTransaction = async (overrides?: DeeplinkParamOverrides) => {
-    const transaction = await createTransferTransaction();
+    const recentBlockhash = await getRecentBlockhash();
+    const transaction = await createTransferTransaction(recentBlockhash);
 
     const serializedTransaction = bs58.encode(
       transaction.serialize({
