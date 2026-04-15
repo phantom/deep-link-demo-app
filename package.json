@@ -17,7 +17,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@solana/web3.js": "~1.35.0",
+    "@solana/web3.js": "~1.35.2",
     "buffer": "^6.0.3",
     "expo": "~48.0.21",
     "expo-linking": "~4.0.1",
